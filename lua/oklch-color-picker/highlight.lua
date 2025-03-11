@@ -419,20 +419,24 @@ local function compute_color_group(rgb)
   else
     local color = rgb_unpack(rgb)
     local bg = "NONE"
+    local fg = "NONE"
 
     if emphasis_threshold < 1. and color_distance(bg_color, color) < emphasis_threshold * 765 then
       local emphasis = is_light(color) and light_emphasis or dark_emphasis
       for i in ipairs(color) do
         color[i] = min(max(color[i] + emphasis, 0), 255)
       end
-      bg = format("#%02x%02x%02x", color[1], color[2], color[3])
+      fg = format("#%02x%02x%02x", color[1], color[2], color[3])
+      group.fg = fg
+      group.bg = bg
+      nvim_set_hl(0, group_name, group)
+    else
+      group.fg = hex
+      nvim_set_hl(0, group_name, group)
     end
 
-    group.fg = hex
-    group.bg = bg
   end
 
-  nvim_set_hl(0, group_name, group)
 
   hex_color_groups[rgb] = group_name
 
