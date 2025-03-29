@@ -1,5 +1,61 @@
 # Changelog
 
+## [3.4.1](https://github.com/eero-lehtinen/oklch-color-picker.nvim/compare/v3.4.0...v3.4.1) (2025-03-29)
+
+
+### Bug Fixes
+
+* take into account LSP position encoding ([#35](https://github.com/eero-lehtinen/oklch-color-picker.nvim/issues/35)) ([3bd4019](https://github.com/eero-lehtinen/oklch-color-picker.nvim/commit/3bd4019125ce9e7845559fccb09339976e24fb50))
+
+## [3.4.0](https://github.com/eero-lehtinen/oklch-color-picker.nvim/compare/v3.3.0...v3.4.0) (2025-03-27)
+
+
+### Features
+
+* allow enabling all LSPs ([cff1b1d](https://github.com/eero-lehtinen/oklch-color-picker.nvim/commit/cff1b1daabe1eb9abfd1530f923d2ad9875a0e08))
+
+## [3.3.0](https://github.com/eero-lehtinen/oklch-color-picker.nvim/compare/v3.2.0...v3.3.0) (2025-03-26)
+
+
+### Features
+
+* LSP support ([#32](https://github.com/eero-lehtinen/oklch-color-picker.nvim/issues/32)) ([f87d7bc](https://github.com/eero-lehtinen/oklch-color-picker.nvim/commit/f87d7bcb9909f87eb765d7be613478256501b2e0))
+
+
+### Bug Fixes
+
+* callback from lsp even if all requests fail ([7c21df1](https://github.com/eero-lehtinen/oklch-color-picker.nvim/commit/7c21df1698751197ca0106bc2889c113b66912a2))
+* improve logging performance ([a66255a](https://github.com/eero-lehtinen/oklch-color-picker.nvim/commit/a66255a01c522750d47e927aadac3f018659c8d9))
+* LSP overlapping marks ([6e4e12f](https://github.com/eero-lehtinen/oklch-color-picker.nvim/commit/6e4e12f7892333a7e4a5d7841ca1865a815c1bd5))
+* make LSP colors work with 0.10 and simplify code ([3bb9413](https://github.com/eero-lehtinen/oklch-color-picker.nvim/commit/3bb94137940bbe7d4a009d03852059ffe2d93328))
+
+## [3.2.0](https://github.com/eero-lehtinen/oklch-color-picker.nvim/compare/v3.1.0...v3.2.0) (2025-03-18)
+
+
+### Features
+
+* update picker to 2.1.0 ([#30](https://github.com/eero-lehtinen/oklch-color-picker.nvim/issues/30)) ([d60e6c1](https://github.com/eero-lehtinen/oklch-color-picker.nvim/commit/d60e6c1ed2a2681b686d741f1e6b876045f5bd69))
+
+## [3.1.0](https://github.com/eero-lehtinen/oklch-color-picker.nvim/compare/v3.0.1...v3.1.0) (2025-03-12)
+
+
+### Features
+
+* update picker version ([af1df5d](https://github.com/eero-lehtinen/oklch-color-picker.nvim/commit/af1df5d290aaf19ae06cc2be6bf9dbfe1d90e577))
+
+
+### Bug Fixes
+
+* add extra checks for downloader renames ([8b96e0d](https://github.com/eero-lehtinen/oklch-color-picker.nvim/commit/8b96e0dcbf5db7b15a270422430628abb59dabb6))
+* macos crash by downloading to a temp file (fixes [#27](https://github.com/eero-lehtinen/oklch-color-picker.nvim/issues/27)) ([05dbe74](https://github.com/eero-lehtinen/oklch-color-picker.nvim/commit/05dbe747fc031744acac3fc76c1fc1ad5f9cfe4d))
+
+## [3.0.1](https://github.com/eero-lehtinen/oklch-color-picker.nvim/compare/v3.0.0...v3.0.1) (2025-03-11)
+
+
+### Bug Fixes
+
+* revert picker version ([e414ccb](https://github.com/eero-lehtinen/oklch-color-picker.nvim/commit/e414ccbcfde65a14ab80501448d4ab21642cf24a))
+
 ## [3.0.0](https://github.com/eero-lehtinen/oklch-color-picker.nvim/compare/v2.0.1...v3.0.0) (2025-03-10)
 
 

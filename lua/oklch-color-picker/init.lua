@@ -11,8 +11,10 @@ local M = {}
 ---@field highlight? oklch.highlight.Opts
 ---@field patterns? table<string, oklch.PatternList>
 ---@field register_cmds? boolean
----@field auto_download? boolean Download Rust binaries automatically.
----@field wsl_use_windows_app? boolean Use the Windows version of the app on WSL instead of using unreliable WSLg
+--- Download Rust binaries automatically.
+---@field auto_download? boolean
+--- Use the Windows version of the app on WSL instead of using unreliable WSLg
+---@field wsl_use_windows_app? boolean
 ---@field log_level? integer
 
 ---@class oklch.PatternList
@@ -27,15 +29,29 @@ local M = {}
 ---@field edit_delay? number Async delay in ms.
 ---@field scroll_delay? number Async delay in ms.
 ---@field style? 'background'|'foreground'|'virtual_left'|'virtual_eol'|'foreground+virtual_left'|'foreground+virtual_eol'
----@field bold? boolean|nil nil = no effect, true = on, false = off
----@field italic? boolean|nil nil = no effect, true = on, false = off
----@field virtual_text? string `● ` also looks nice, nerd fonts also have bigger shapes ` `, `󰝤 `, and ` `.
----@field priority? number Less than user hl by default (:help vim.highlight.priorities)
----@field emphasis? oklch.highlight.EmphasisOpts|false Tint the highlight background for 'foreground' and 'virtual' styles when the color is too close to the editor background.
+---@field bold? boolean
+---@field italic? boolean
+--- `● ` also looks nice, nerd fonts also have bigger shapes ` `, `󰝤 `, and ` `.
+---@field virtual_text? string
+--- Less than user hl by default (:help vim.highlight.priorities)
+---@field priority? number
+---Tint the highlight background for 'foreground' and 'virtual' styles when the color is too close to the editor background.
+---@field emphasis? oklch.highlight.EmphasisOpts|false
+--- List of LSP clients that are allowed to highlight colors:
+--- By default, only fairly performant and useful LSPs are enabled.
+--- "tailwindcss", "cssls", and "css_variables" all highlight small files in 2-10ms
+--- (still a lot slower than the 0.1 ms of this plugin, but they give some extra features).
+--- Some LSPs are very slow like "svelte" (>1000 ms) even in tiny files and don't give new features.
+--- "lua_ls" is also not worth enabling because it never finds any colors.
+--- set `enabled_lsps = true` to enable all LSPs anyways.
+---@field enabled_lsps? string[]|true
+---@field lsp_delay? number
 
 ---@class oklch.highlight.EmphasisOpts
----@field threshold? [number, number] Distance (0..1) to the editor background where emphasis activates (first item for dark themes, second for light ones).
----@field amount? [number, number] How much (0..255) to offset the color (first item for dark colors, second for light ones).
+--- Distance (0..1) to the editor background where emphasis activates (first item for dark themes, second for light ones).
+---@field threshold? [number, number]
+--- How much (0..255) to offset the color (first item for dark colors, second for light ones).
+---@field amount? [number, number]
 
 --- Return a number with R, G, and B components combined into a single number 0xRRGGBB.
 --- (`require("oklch-color-picker").components_to_number` can help with this)
@@ -50,14 +66,16 @@ local default_opts = {
     edit_delay = 60,
     scroll_delay = 0,
     style = "background",
-    bold = nil,
-    italic = nil,
+    bold = false,
+    italic = false,
     virtual_text = "■ ",
     priority = 175,
     emphasis = {
       threshold = { 0.1, 0.17 },
       amount = { 45, -80 },
     },
+    enabled_lsps = { "tailwindcss", "cssls", "css_variables" },
+    lsp_delay = 120,
   },
 
   patterns = {
@@ -228,6 +246,7 @@ M.highlight = {
   disable = highlight.disable,
   toggle = highlight.toggle,
   set_perf_logging = highlight.set_perf_logging,
+  set_lsp_perf_logging = highlight.set_lsp_perf_logging,
   parse = highlight.parse,
 }
 

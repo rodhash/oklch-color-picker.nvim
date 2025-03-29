@@ -1,6 +1,6 @@
 local utils = require("oklch-color-picker.utils")
 
-local version = "2.0.0"
+local version = "2.1.0"
 
 local github_url = "https://github.com/eero-lehtinen/oklch-color-picker/releases/download/" .. version .. "/"
 
@@ -77,14 +77,18 @@ end
 function M.write_parser_version()
   vim.uv.fs_open(utils.get_path() .. "/parser_version", "w", 438, function(err, fd)
     if err or not fd then
-      utils.log("Couldn't open version file for writing: " .. (err or ""), vim.log.levels.WARN)
+      utils.log(function()
+        return "Couldn't open version file for writing: " .. (err or "")
+      end, vim.log.levels.WARN)
       return
     end
 
     vim.uv.fs_write(fd, version, 0, function(write_err)
       vim.uv.fs_close(fd)
       if write_err then
-        utils.log("Couldn't write version file:" .. write_err, vim.log.levels.WARN)
+        utils.log(function()
+          return "Couldn't write version file:" .. write_err
+        end, vim.log.levels.WARN)
       end
     end)
   end)
@@ -155,11 +159,23 @@ function M.download_app(callback)
         end
 
         os.remove(cwd .. "/" .. archive)
-        os.remove(cwd .. "/" .. utils.executable())
-        os.rename(cwd .. "/" .. archive_basename .. "/" .. utils.executable(), cwd .. "/" .. utils.executable())
+        local success, err = vim.uv.fs_rename(
+          cwd .. "/" .. archive_basename .. "/" .. utils.executable(),
+          cwd .. "/" .. utils.executable()
+        )
+        if err or not success then
+          if utils.is_windows() then
+            utils.log("You likely have the picker app open somewhere. Close it and try again.", vim.log.levels.WARN)
+          end
+          callback("Picker app rename after download failed: " .. err)
+          return
+        end
+
         os.remove(cwd .. "/" .. archive_basename)
 
-        utils.log("Extraction success, binary in " .. cwd, vim.log.levels.DEBUG)
+        utils.log(function()
+          return "Extraction success, binary in " .. cwd
+        end, vim.log.levels.DEBUG)
         utils.log("Picker app downloaded", vim.log.levels.INFO)
 
         callback(nil)
@@ -212,24 +228,34 @@ function M.download_parser(callback)
     return
   end
 
+  -- Download to a temporary file to avoid crashing:
+  -- https://developer.apple.com/documentation/security/updating-mac-software
   vim.system(
-    { "curl", "--fail", "-o", out_lib, "-L", url },
+    { "curl", "--fail", "-o", out_lib .. ".tmp", "-L", url },
     { cwd = cwd },
     vim.schedule_wrap(function(out)
       if out.code ~= 0 then
         callback("Curl failed\nstdout: " .. out.stdout .. "\nstderr: " .. out.stderr)
+        return
+      end
+
+      local success, err = vim.uv.fs_rename(cwd .. "/" .. out_lib .. ".tmp", cwd .. "/" .. out_lib)
+      if err or not success then
         if utils.is_windows() then
           utils.log(
             "You likely have other Neovim instances open and using the library. Close them and try again.",
             vim.log.levels.WARN
           )
         end
+        callback("Parser rename after download failed: " .. err)
         return
       end
 
       M.write_parser_version()
 
-      utils.log("Parser located at " .. cwd, vim.log.levels.DEBUG)
+      utils.log(function()
+        return "Parser located at " .. cwd
+      end, vim.log.levels.DEBUG)
       utils.log("Parser downloaded", vim.log.levels.INFO)
       callback(nil)
     end)

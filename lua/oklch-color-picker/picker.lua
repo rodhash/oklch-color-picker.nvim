@@ -1,4 +1,5 @@
 local utils = require("oklch-color-picker.utils")
+local highlight = require("oklch-color-picker.highlight")
 
 ---@class oklch.picker
 local M = {}
@@ -32,7 +33,9 @@ local function apply_new_color(color)
 
   vim.schedule(function()
     if pending_edit.changedtick ~= vim.api.nvim_buf_get_changedtick(pending_edit.bufnr) then
-      utils.log(string.format("Not applying new color '%s' because the buffer has changed", color), vim.log.levels.WARN)
+      utils.log(function()
+        return string.format("Not applying new color '%s' because the buffer has changed", color)
+      end, vim.log.levels.WARN)
       return
     end
 
@@ -46,7 +49,9 @@ local function apply_new_color(color)
     )
     pending_edit = nil
 
-    utils.log("Applied '" .. color .. "'", vim.log.levels.INFO)
+    utils.log(function()
+      return "Applied '" .. color .. "'"
+    end, vim.log.levels.INFO)
   end)
 end
 
@@ -58,7 +63,9 @@ local function start_app()
 
   local stdout = function(err, data)
     if data then
-      utils.log("Stdout: " .. data, vim.log.levels.DEBUG)
+      utils.log(function()
+        return "Stdout: " .. data
+      end, vim.log.levels.DEBUG)
       if data == "" then
         utils.log("Picker returned an empty string", vim.log.levels.WARN)
         return
@@ -66,7 +73,9 @@ local function start_app()
       local color = data:match("^[^\r\n]*")
       apply_new_color(color)
     elseif err then
-      utils.log("Stdout error: " .. err, vim.log.levels.DEBUG)
+      utils.log(function()
+        return "Stdout error: " .. err
+      end, vim.log.levels.DEBUG)
     else
       utils.log("Stdout closed", vim.log.levels.DEBUG)
     end
@@ -76,7 +85,9 @@ local function start_app()
     if data then
       utils.log(data, vim.log.levels.WARN)
     elseif err then
-      utils.log("Stderr error: " .. err, vim.log.levels.DEBUG)
+      utils.log(function()
+        return "Stderr error: " .. err
+      end, vim.log.levels.DEBUG)
     else
       utils.log("Stderr closed", vim.log.levels.DEBUG)
     end
@@ -99,19 +110,25 @@ local function start_app()
 
   vim.system(cmd, { stdout = stdout, stderr = stderr }, function(res)
     if res.code ~= 0 then
-      utils.log("App failed and exited with code " .. res.code, vim.log.levels.DEBUG)
+      utils.log(function()
+        return "App failed and exited with code " .. res.code
+      end, vim.log.levels.DEBUG)
     end
-    utils.log("App exited successfully " .. vim.inspect(res), vim.log.levels.DEBUG)
+    utils.log(function()
+      return "App exited successfully " .. vim.inspect(res)
+    end, vim.log.levels.DEBUG)
   end)
 
   return true
 end
 
+--- @param bufnr number
 --- @param line string
+--- @param line_n number
 --- @param cursor_col number
 --- @param ft string
 --- @return { pos: [number, number], color: string, color_format: string|nil }| nil
-local function find_color(line, cursor_col, ft)
+local function find_color(bufnr, line, line_n, cursor_col, ft)
   for _, pattern_list in ipairs(final_patterns) do
     if pattern_list.ft(ft) then
       for _, pattern in ipairs(pattern_list) do
@@ -145,6 +162,31 @@ local function find_color(line, cursor_col, ft)
     end
   end
 
+  -- As a last resort, check if we are over a lsp color (change to zero-indexing)
+  local buf_data = highlight.bufs[bufnr]
+  if not buf_data then
+    return nil
+  end
+  cursor_col = cursor_col - 1
+  line_n = line_n - 1
+  for _, lsp_colors in pairs(buf_data.lsp_colors) do
+    for _, lsp_color in ipairs(lsp_colors) do
+      if
+        lsp_color.range.start.line == line_n
+        and cursor_col >= lsp_color.range.start.character
+        and cursor_col < lsp_color.range["end"].character
+      then
+        local start = lsp_color.range.start.character + 1
+        local finish = lsp_color.range["end"].character
+        local color = string.format("#%06x", lsp_color.packed_color)
+        return {
+          pos = { start, finish },
+          color = color,
+        }
+      end
+    end
+  end
+
   return nil
 end
 
@@ -170,7 +212,7 @@ function M.pick_under_cursor(opts)
   local line = vim.api.nvim_buf_get_lines(bufnr, row - 1, row, false)[1]
   local ft = vim.api.nvim_get_option_value("filetype", { buf = 0 })
 
-  local res = find_color(line, col, ft)
+  local res = find_color(bufnr, line, row, col, ft)
 
   if not res then
     if type(opts) == "table" and opts.fallback_open then
@@ -180,7 +222,9 @@ function M.pick_under_cursor(opts)
     return false
   end
 
-  utils.log(string.format("Found color '%s' at position %s", res.color, vim.inspect(res.pos)), vim.log.levels.DEBUG)
+  utils.log(function()
+    return string.format("Found color '%s' at position %s", res.color, vim.inspect(res.pos))
+  end, vim.log.levels.DEBUG)
 
   local color_format = nil
   if type(opts) == "string" then
