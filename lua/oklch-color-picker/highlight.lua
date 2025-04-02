@@ -47,6 +47,11 @@ function M.setup(opts_, patterns_, auto_download)
     return
   end
 
+  hl_group = {
+    bold = opts.bold,
+    italic = opts.italic,
+  }
+
   M.update_emphasis_values()
 
   if type(opts.enabled_lsps) == "boolean" then
@@ -185,6 +190,16 @@ M.buf_attached = {}
 function M.on_buf_enter(bufnr)
   local buftype = vim.api.nvim_get_option_value("buftype", { buf = bufnr })
   if buftype ~= "" then
+    return
+  end
+
+  local line_count = vim.api.nvim_buf_line_count(bufnr)
+
+  local path = vim.api.nvim_buf_get_name(bufnr)
+  local stat, err = vim.uv.fs_stat(path)
+
+  if not err and stat and stat.size / line_count > 3000 then
+    utils.log("Minified file detected, skipping highlighting", vim.log.levels.DEBUG)
     return
   end
 
@@ -378,13 +393,6 @@ function M.process_update(bufnr)
   local lines = vim.api.nvim_buf_get_lines(bufnr, from_line, to_line, false)
 
   local ft = vim.api.nvim_get_option_value("filetype", { buf = bufnr })
-
-  -- ignore very long lines
-  for i, line in ipairs(lines) do
-    if string.len(line) > 4000 then
-      lines[i] = ""
-    end
-  end
 
   M.highlight_lines(bufnr, lines, from_line, ft)
 
@@ -623,8 +631,29 @@ function M.highlight_lines(bufnr, lines, from_line, ft)
   nvim_buf_clear_namespace(bufnr, ns, from_line, from_line + #lines)
 
   local lsp_namespaces_list = M.lsp_namespaces_list
-  local get_mark_start = {}
-  local get_mark_end = {}
+  local get_mark_start = { 0, 0 }
+  local get_mark_end = { 0, 0 }
+
+  local space_check_ns = function(namespace)
+    return rawequal(
+      next(nvim_buf_get_extmarks(bufnr, namespace, get_mark_start, get_mark_end, { overlap = true, limit = 1 })),
+      nil
+    )
+  end
+
+  local has_space = function(match_start, match_end)
+    get_mark_start[2] = match_start - 1
+    get_mark_end[2] = match_end - 1
+    if not space_check_ns(ns) then
+      return false
+    end
+    for _, lsp_ns in ipairs(lsp_namespaces_list) do
+      if not space_check_ns(lsp_ns) then
+        return false
+      end
+    end
+    return true
+  end
 
   for i, line in ipairs(lines) do
     local line_n = from_line + i - 1
@@ -637,29 +666,9 @@ function M.highlight_lines(bufnr, lines, from_line, ft)
         local match_start, match_end = find(line, pattern.cheap, start)
 
         while match_start ~= nil do
-          local has_space = true
-          get_mark_start[2] = match_start - 1
-          get_mark_end[2] = match_end - 1
-
-          -- Try to avoid previous normal marks and LSP marks
-          if #nvim_buf_get_extmarks(bufnr, ns, get_mark_start, get_mark_end, { overlap = true, limit = 1 }) > 0 then
-            has_space = false
-          else
-            for _, lsp_ns in ipairs(lsp_namespaces_list) do
-              if
-                #nvim_buf_get_extmarks(bufnr, lsp_ns, get_mark_start, get_mark_end, { overlap = true, limit = 1 }) > 0
-              then
-                has_space = false
-                break
-              end
-            end
-          end
-
-          if has_space then
-            local replace_start, replace_end
-            if pattern.simple_groups then
-              replace_start, replace_end = match_start, match_end
-            else
+          if has_space(match_start, match_end) then
+            local replace_start, replace_end = match_start, match_end
+            if not pattern.simple_groups then
               _, _, replace_start, replace_end = find(line, pattern.grouped, match_start)
               replace_end = replace_end - 1
             end
